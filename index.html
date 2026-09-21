@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0a5cff">
+  <meta name="description" content="DYNEX — a powerful multipurpose Discord bot for moderation, AI, automation, utilities and server management.">
+  <title>DYNEX — Discord Bot</title>
+  <link rel="icon" href="assets/dynex.gif" type="image/gif">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="bg-grid"></div><div class="glow glow-a"></div><div class="glow glow-b"></div>
+  <header class="nav-wrap"><nav class="nav container">
+    <a class="brand" href="#top"><img src="assets/dynex.gif" alt="DYNEX logo"><span>DYNEX</span></a>
+    <button class="menu" aria-label="Open menu">☰</button>
+    <div class="nav-links"><a href="#features">Features</a><a href="#commands">Commands</a><a href="#stats">Stats</a><a href="#docs">Docs</a><a class="nav-cta" href="https://discord.gg/bXXFRQ82z" target="_blank" rel="noopener">Support</a></div>
+  </nav></header>
+
+  <main id="top">
+    <section class="hero container">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="pulse"></span> DYNEX IS ONLINE</div>
+        <h1>One bot.<br><span>More control.</span></h1>
+        <p class="lead">A modern Discord bot built for powerful server management, moderation, AI, automation, utilities and community tools — wrapped in one clean experience.</p>
+        <div class="hero-actions">
+          <a class="btn primary" id="inviteBtn" href="#" data-client-id="1550980325176246342">Add DYNEX <span>↗</span></a>
+          <a class="btn secondary" href="https://discord.gg/bXXFRQ82z" target="_blank" rel="noopener">Support Server</a>
+        </div>
+        <div class="mini-trust"><span>58</span> registered slash commands <i></i><span>Discord.js 14</span><i></i><span>Built for communities</span></div>
+      </div>
+      <div class="hero-art">
+        <div class="orb"><div class="orb-ring"></div><img src="assets/dynex.gif" alt="DYNEX"></div>
+        <div class="float-card card-one"><b>⚡ Fast</b><small>Responsive commands</small></div>
+        <div class="float-card card-two"><b>🛡️ Secure</b><small>Moderation & protection</small></div>
+        <div class="float-card card-three"><b>✦ AI</b><small>Assistant tools</small></div>
+      </div>
+    </section>
+
+    <section class="section container" id="features">
+      <div class="section-head"><div><div class="eyebrow">CAPABILITIES</div><h2>Built for your server.</h2></div><p>DYNEX combines the systems your community needs without turning the interface into a mess.</p></div>
+      <div class="feature-grid">
+        <article class="feature"><div class="icon">🛡</div><h3>Moderation & AutoMod</h3><p>Moderation, automod, antinuke, logging and server-safety workflows.</p></article>
+        <article class="feature"><div class="icon">✦</div><h3>AI Assistant</h3><p>AI chat and image-analysis tools with enable/disable controls.</p></article>
+        <article class="feature"><div class="icon">⚙</div><h3>Server Management</h3><p>Welcome, farewell, tickets, reaction roles, prefixes and configuration.</p></article>
+        <article class="feature"><div class="icon">◈</div><h3>Community Tools</h3><p>Giveaways, profiles, leaderboard, reminders, todo, fun and roleplay.</p></article>
+        <article class="feature"><div class="icon">⌁</div><h3>Media & Search</h3><p>Media, YouTube, Google, Pinterest, Wikipedia, news and utility commands.</p></article>
+        <article class="feature"><div class="icon">◉</div><h3>Developer Friendly</h3><p>Slash + hybrid command architecture with PostgreSQL-backed services.</p></article>
+      </div>
+    </section>
+
+    <section class="stats" id="stats"><div class="container stats-grid">
+      <div><strong>58</strong><span>Slash commands</span></div><div><strong>12</strong><span>Event systems</span></div><div><strong>14.x</strong><span>Discord.js</span></div><div><strong>24/7</strong><span>Deployment ready</span></div>
+    </div></section>
+
+    <section class="section container" id="commands">
+      <div class="section-head"><div><div class="eyebrow">COMMAND CENTER</div><h2>Explore commands.</h2></div><p>The list below is generated from the uploaded DYNEX/ASTRYX project’s registered slash-command definitions.</p></div>
+      <div class="command-toolbar"><input id="search" type="search" placeholder="Search commands…" aria-label="Search commands"><div id="filters" class="filters"></div></div>
+      <div id="commandGrid" class="command-grid"></div>
+      <div id="empty" class="empty" hidden>No commands matched your search.</div>
+    </section>
+
+    <section class="section container docs" id="docs"><div class="docs-card">
+      <div><div class="eyebrow">READY TO START?</div><h2>Bring DYNEX to your server.</h2><p>Add the bot, explore the command system, and get support from the community.</p></div>
+      <div class="docs-actions"><a class="btn primary" href="#" id="inviteBtn2">Add to Discord ↗</a><a class="btn secondary" href="https://discord.gg/bXXFRQ82z" target="_blank" rel="noopener">Join Support</a></div>
+    </div></section>
+  </main>
+
+  <footer class="footer"><div class="container footer-inner"><div class="brand"><img src="assets/dynex.gif" alt=""><span>DYNEX</span></div><p>Powering better Discord communities.</p><div class="footer-links"><a href="#features">Features</a><a href="#commands">Commands</a><a href="https://discord.gg/bXXFRQ82z" target="_blank" rel="noopener">Discord</a></div><small>© 2026 DYNEX. All rights reserved.</small></div></footer>
+  <script src="commands.js"></script><script src="script.js"></script>
+</body></html>
