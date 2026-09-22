@@ -1,25 +1,49 @@
-# DYNEX Dashboard
+# DYNEX Dashboard Pro
 
-A real DYNEX Discord dashboard foundation with the DYNEX blue/black visual identity, Discord OAuth2 login, server selection, permission checks, bot-install checks, live Discord guild/role/channel data, PostgreSQL-backed settings, audit logs, rate limiting, Helmet and a health endpoint.
+A production-oriented Discord dashboard inspired by the layout and information density shown in the supplied reference video, with a stronger DYNEX blue/black visual system.
 
-## What is real
-- Discord OAuth2 login (identify + guilds)
-- Only servers where the logged-in user has Manage Server/Administrator are shown
-- Verifies DYNEX is installed before dashboard configuration
-- Reads live guild, role and channel data through Discord API
-- Saves dashboard settings to PostgreSQL
-- Audit log for settings changes
-- Secure server-side bot token handling
-- Responsive DYNEX-themed UI
+## Included
+- Discord OAuth2 (`identify guilds`) with CSRF state
+- Persistent PostgreSQL Express sessions
+- Railway/reverse-proxy-safe cookies
+- Server selection restricted to servers where the user has Manage Server/Admin
+- Verification that DYNEX is installed in the selected server
+- Live guild, channel and role counts from Discord
+- PostgreSQL-backed guild settings
+- Audit log
+- Responsive mobile dashboard with collapsible sidebar
+- Modules: Moderation, Security, AutoMod, Welcome, Roles, Tickets, Giveaways, Music, Community, AI, Logging
+- No bot token in frontend code
 
-## Important integration note
-The dashboard cannot magically change every existing bot subsystem unless the bot reads these settings. This package stores configuration in PostgreSQL so the existing ASTRYX/DYNEX bot can consume the same settings. Add a small bot-side bridge/repository that reads `dashboard_guild_settings` and applies each module's configuration. Do NOT put BOT_TOKEN or DISCORD_CLIENT_SECRET in the frontend.
+## Railway deployment
 
-## Local / Railway
-1. Copy `.env.example` to `.env`.
-2. Set `DASHBOARD_URL` to the public dashboard URL.
-3. In Discord Developer Portal add `${DASHBOARD_URL}/auth/discord/callback` as an OAuth2 redirect URI.
-4. Set `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_BOT_TOKEN`, `DATABASE_URL`, and a long `SESSION_SECRET`.
-5. `npm install && npm start`.
+Create a separate Railway service from this folder/repository.
 
-For Railway, deploy this folder as a separate service in the same project as the bot and PostgreSQL. Set `DATABASE_URL` to the Railway Postgres variable/reference. Keep secrets in Railway Variables, never in GitHub.
+Set:
+- `NODE_ENV=production`
+- `DASHBOARD_URL=https://YOUR-RAILWAY-DOMAIN`
+- `DISCORD_CLIENT_ID=1550980325176246342`
+- `DISCORD_CLIENT_SECRET=<Discord Developer Portal Client Secret>`
+- `DISCORD_BOT_TOKEN=${{ASTRYX.BOT_TOKEN}}`
+- `DATABASE_URL=${{Postgres.DATABASE_URL}}`
+- `SESSION_SECRET=<32+ random characters>`
+- `SUPPORT_SERVER=https://discord.gg/bXXFRQ82z`
+
+Discord Developer Portal → OAuth2 → Redirects:
+`https://YOUR-RAILWAY-DOMAIN/auth/discord/callback`
+
+The frontend uses the same DYNEX theme but the backend is required for OAuth, sessions and PostgreSQL.
+
+## Bot bridge
+
+The dashboard persists JSON settings in:
+`dynex_dashboard_guild_settings`
+
+Your DYNEX bot should read that table (or expose a small internal service/repository) and apply module settings to its real subsystems. The dashboard deliberately does not pretend that a UI toggle can change an unrelated bot module by itself.
+
+## Local
+```bash
+cp .env.example .env
+npm install
+npm start
+```

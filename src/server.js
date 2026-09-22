@@ -1,60 +1,241 @@
-require('dotenv').config({quiet:true});
-const express=require('express');
-const session=require('express-session');
-const pgSession=require('connect-pg-simple')(session);
-const helmet=require('helmet');
-const rateLimit=require('express-rate-limit');
-const path=require('path');
-const discord=require('./discord');
-const db=require('./db');
+require("dotenv").config();
 
-for(const k of ['DISCORD_CLIENT_ID','DISCORD_CLIENT_SECRET','DISCORD_BOT_TOKEN','DASHBOARD_URL','SESSION_SECRET','DATABASE_URL']) if(!process.env[k]) console.warn(`[DYNEX] Missing environment variable: ${k}`);
-const app=express();
-app.set('trust proxy',1);
-app.use(helmet({contentSecurityPolicy:false}));
-app.use(express.json({limit:'100kb'}));
-app.use(rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false}));
-app.use(session({
-  store:new pgSession({
-    pool:db.pool,
-    tableName:'dynex_dashboard_sessions',
-    createTableIfMissing:true
-  }),
-  secret:process.env.SESSION_SECRET||'change-me',
-  resave:false,
-  saveUninitialized:false,
-  proxy:true,
-  cookie:{
-    httpOnly:true,
-    secure:true,
-    sameSite:'lax',
-    maxAge:7*24*60*60*1000
-  }
-}));
-app.use(express.static(path.join(__dirname,'..','public')));
+const path = require("path");
+const express = require("express");
+const session = require("express-session");
+const pgSession = require("connect-pg-simple")(session);
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const db = require("./db");
+const discord = require("./discord");
 
-function auth(req,res,next){ if(!req.session.user) return res.status(401).json({error:'Not authenticated'}); next(); }
-async function managedGuild(req,res,next){
-  try{
-    const list=await discord.userGuilds(req.session.accessToken);
-    const g=list.find(x=>x.id===req.params.guildId);
-    if(!g || !discord.canManage(g)) return res.status(403).json({error:'You do not have Manage Server permission for this server.'});
-    const bots=await discord.botGuilds();
-    const installed=bots.some(x=>x.id===g.id);
-    req.userGuild=g; req.botInstalled=installed;
-    if(!installed) return res.status(409).json({error:'DYNEX is not installed on this server.',code:'BOT_NOT_INSTALLED'});
-    next();
-  }catch(e){console.error(e.response?.data||e.message);res.status(502).json({error:'Discord API request failed'});}
+const app = express();
+const PORT = Number(process.env.PORT || 8080);
+
+const required = [
+  "DISCORD_CLIENT_ID",
+  "DISCORD_CLIENT_SECRET",
+  "DISCORD_BOT_TOKEN",
+  "DASHBOARD_URL",
+  "SESSION_SECRET",
+  "DATABASE_URL"
+];
+for (const key of required) {
+  if (!process.env[key]) console.warn(`[DYNEX] Missing environment variable: ${key}`);
 }
 
-app.get('/auth/discord',(req,res)=>res.redirect(discord.oauthUrl()));
-app.get('/auth/discord/callback',async(req,res)=>{try{if(!req.query.code) return res.redirect('/?error=oauth'); const t=await discord.tokenExchange(req.query.code); const u=await discord.user(t.access_token); await new Promise((resolve,reject)=>req.session.regenerate(err=>err?reject(err):resolve())); req.session.user=u; req.session.accessToken=t.access_token; await new Promise((resolve,reject)=>req.session.save(err=>err?reject(err):resolve())); console.log('[DYNEX] Discord OAuth session saved'); res.redirect('/dashboard.html');}catch(e){console.error(e.response?.data||e.message);res.redirect('/?error=oauth');}});
-app.post('/auth/logout',(req,res)=>req.session.destroy(()=>res.json({ok:true})));
-app.get('/api/me',(req,res)=>res.json({authenticated:Boolean(req.session.user),user:req.session.user||null}));
-app.get('/api/guilds',auth,async(req,res)=>{try{const mine=await discord.userGuilds(req.session.accessToken);const bots=await discord.botGuilds();const installed=new Set(bots.map(x=>x.id));res.json({guilds:mine.filter(discord.canManage).map(g=>({...g,botInstalled:installed.has(g.id)}))});}catch(e){res.status(502).json({error:'Discord API request failed'});}});
-app.get('/api/guilds/:guildId',auth,managedGuild,async(req,res)=>{try{const [g,roles,channels,settings]=await Promise.all([discord.botGuild(req.params.guildId),discord.roles(req.params.guildId),discord.channels(req.params.guildId),db.getSettings(req.params.guildId)]);res.json({guild:g,roles,channels,settings});}catch(e){console.error(e.response?.data||e.message);res.status(502).json({error:'Could not load server data'});}});
-app.put('/api/guilds/:guildId/settings',auth,managedGuild,async(req,res)=>{try{const settings=req.body||{};await db.saveSettings(req.params.guildId,settings,req.session.user.id);await db.audit(req.params.guildId,req.session.user.id,'settings.update',settings);res.json({ok:true,settings});}catch(e){console.error(e);res.status(500).json({error:'Could not save settings'});}});
-app.get('/api/guilds/:guildId/audit',auth,managedGuild,async(req,res)=>{try{const r=await db.pool.query('SELECT id,user_id,action,details,created_at FROM dashboard_audit_log WHERE guild_id=$1 ORDER BY id DESC LIMIT 100',[req.params.guildId]);res.json({logs:r.rows});}catch(e){res.status(500).json({error:'Could not load audit log'});}});
-app.get('/health',async(req,res)=>{try{await db.pool.query('SELECT 1');res.json({ok:true,service:'DYNEX Dashboard',time:new Date().toISOString()});}catch(e){res.status(503).json({ok:false});}});
-app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'..','public','index.html')));
-(async()=>{try{await db.initDb();const port=Number(process.env.PORT||3000);app.listen(port,()=>console.log(`DYNEX Dashboard listening on :${port}`));}catch(e){console.error('Startup failed:',e);process.exit(1);}})();
+app.set("trust proxy", 1);
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }
+}));
+app.use(express.json({ limit: "100kb" }));
+app.use(express.urlencoded({ extended: false }));
+
+const limiter = rateLimit({
+  windowMs: 60_000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use("/api", limiter);
+
+app.use(session({
+  store: new pgSession({
+    pool: db.pool,
+    tableName: "dynex_dashboard_sessions",
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET || "change-me",
+  resave: false,
+  saveUninitialized: false,
+  proxy: true,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: "auto",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  }
+}));
+
+function requireAuth(req, res, next) {
+  if (!req.session.user || !req.session.accessToken) {
+    return res.status(401).json({ authenticated: false });
+  }
+  next();
+}
+
+async function managedGuild(req, guildId) {
+  const guilds = await discord.userGuilds(req.session.accessToken);
+  const found = guilds.find(g => g.id === guildId);
+  if (!found || !discord.canManage(found)) {
+    const err = new Error("You do not have Manage Server permission for this server.");
+    err.status = 403;
+    throw err;
+  }
+  const botGuilds = await discord.botGuilds();
+  if (!botGuilds.some(g => g.id === guildId)) {
+    const err = new Error("DYNEX is not installed in this server.");
+    err.status = 409;
+    throw err;
+  }
+  return found;
+}
+
+app.get("/auth/discord", (req, res) => {
+  const state = discord.randomState();
+  req.session.oauthState = state;
+  req.session.save(() => res.redirect(discord.oauthUrl(state)));
+});
+
+app.get("/auth/discord/callback", async (req, res) => {
+  try {
+    if (!req.query.code || !req.query.state || req.query.state !== req.session.oauthState) {
+      return res.redirect("/?error=oauth_state");
+    }
+
+    const tokens = await discord.tokenExchange(req.query.code);
+    const me = await discord.user(tokens.access_token);
+
+    await new Promise((resolve, reject) =>
+      req.session.regenerate(err => err ? reject(err) : resolve())
+    );
+    req.session.user = me;
+    req.session.accessToken = tokens.access_token;
+
+    await new Promise((resolve, reject) =>
+      req.session.save(err => err ? reject(err) : resolve())
+    );
+
+    console.log(`[DYNEX] OAuth session saved for ${me.username} (${req.sessionID})`);
+    res.redirect("/dashboard.html");
+  } catch (err) {
+    console.error("[DYNEX] OAuth callback failed:", err.response?.data || err.message);
+    res.redirect("/?error=oauth");
+  }
+});
+
+app.post("/auth/logout", (req, res) => {
+  req.session.destroy(() => res.json({ ok: true }));
+});
+
+app.get("/api/me", (req, res) => {
+  res.json({
+    authenticated: Boolean(req.session.user && req.session.accessToken),
+    user: req.session.user || null
+  });
+});
+
+app.get("/api/guilds", requireAuth, async (req, res) => {
+  try {
+    const [userGuilds, botGuilds] = await Promise.all([
+      discord.userGuilds(req.session.accessToken),
+      discord.botGuilds()
+    ]);
+    const botIds = new Set(botGuilds.map(g => g.id));
+    const guilds = userGuilds
+      .filter(discord.canManage)
+      .map(g => ({
+        id: g.id,
+        name: g.name,
+        icon: g.icon,
+        owner: g.owner,
+        botInstalled: botIds.has(g.id)
+      }));
+    res.json({ guilds });
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    res.status(502).json({ error: "Unable to load Discord servers." });
+  }
+});
+
+app.get("/api/guilds/:guildId/overview", requireAuth, async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    await managedGuild(req, guildId);
+    const [g, roles, channels, settings] = await Promise.all([
+      discord.guild(guildId),
+      discord.roles(guildId),
+      discord.channels(guildId),
+      db.getSettings(guildId)
+    ]);
+    res.json({
+      guild: {
+        id: g.id, name: g.name, icon: g.icon,
+        ownerId: g.owner_id, memberCount: g.approximate_member_count
+      },
+      counts: {
+        roles: roles.length,
+        channels: channels.length,
+        textChannels: channels.filter(c => c.type === 0).length,
+        voiceChannels: channels.filter(c => [2,13].includes(c.type)).length
+      },
+      settings
+    });
+  } catch (err) {
+    res.status(err.status || 502).json({ error: err.message || "Unable to load server." });
+  }
+});
+
+app.get("/api/guilds/:guildId/settings", requireAuth, async (req, res) => {
+  try {
+    await managedGuild(req, req.params.guildId);
+    res.json({ settings: await db.getSettings(req.params.guildId) });
+  } catch (err) {
+    res.status(err.status || 502).json({ error: err.message });
+  }
+});
+
+app.put("/api/guilds/:guildId/settings", requireAuth, async (req, res) => {
+  try {
+    const { guildId } = req.params;
+    await managedGuild(req, guildId);
+    const settings = req.body?.settings;
+    if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
+      return res.status(400).json({ error: "Invalid settings payload." });
+    }
+    await db.saveSettings(guildId, settings, req.session.user.id);
+    await db.audit(guildId, req.session.user.id, "settings.updated", {
+      keys: Object.keys(settings)
+    });
+    res.json({ ok: true, settings });
+  } catch (err) {
+    res.status(err.status || 502).json({ error: err.message });
+  }
+});
+
+app.get("/api/guilds/:guildId/audit", requireAuth, async (req, res) => {
+  try {
+    await managedGuild(req, req.params.guildId);
+    res.json({ logs: await db.recentAudit(req.params.guildId) });
+  } catch (err) {
+    res.status(err.status || 502).json({ error: err.message });
+  }
+});
+
+app.get("/api/health", async (req, res) => {
+  try {
+    await db.pool.query("SELECT 1");
+    res.json({ ok: true, service: "DYNEX Dashboard", database: "ok", time: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ ok: false });
+  }
+});
+
+app.use(express.static(path.join(__dirname, "..", "public")));
+
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api/") || req.path.startsWith("/auth/")) return next();
+  res.sendFile(path.join(__dirname, "..", "public", "index.html"));
+});
+
+async function start() {
+  await db.initDb();
+  app.listen(PORT, () => console.log(`[DYNEX] Dashboard listening on :${PORT}`));
+}
+
+start().catch(err => {
+  console.error("[DYNEX] Startup failed:", err);
+  process.exit(1);
+});

@@ -1,1 +1,72 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a5cff"><title>DYNEX Dashboard</title><link rel="icon" href="assets/dynex.gif"><link rel="stylesheet" href="styles.css"></head><body><div class="grid"></div><header><a class="brand" href="/"><img src="assets/dynex.gif">DYNEX</a><div><span id="user"></span><button id="logout" class="ghost">Logout</button></div></header><div class="layout"><aside><h3>SERVER</h3><select id="guilds"></select><nav><button data-tab="overview" class="active">⌂ Overview</button><button data-tab="moderation">🛡 Moderation</button><button data-tab="security">🔒 Security</button><button data-tab="welcome">👋 Welcome</button><button data-tab="tickets">🎫 Tickets</button><button data-tab="logging">📜 Logging</button><button data-tab="roles">🎭 Roles</button><button data-tab="ai">✦ AI</button><button data-tab="music">♫ Music</button><button data-tab="community">◈ Community</button></nav></aside><main class="panel"><div id="toast"></div><section id="content"></section></main></div><script src="dashboard.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#070b16">
+<title>DYNEX • Dashboard</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body class="dash-body">
+<div class="mobile-top">
+  <button id="menuBtn" class="icon-btn">☰</button>
+  <div class="mini-brand"><b>D</b> DYNEX</div>
+  <button id="mobileSave" class="save-mini">Save</button>
+</div>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand"><div class="brand-mark small">D</div><div><b>DYNEX</b><small>CONTROL CENTER</small></div></div>
+    <div class="server-select" id="serverSelect"><div class="server-avatar">D</div><div><strong>Select server</strong><small>Loading...</small></div><span>⌄</span></div>
+    <nav>
+      <div class="nav-label">OVERVIEW</div>
+      <button class="nav active" data-page="overview">⌂ <span>Overview</span></button>
+      <button class="nav" data-page="analytics">◫ <span>Analytics</span></button>
+      <div class="nav-label">MODULES</div>
+      <button class="nav" data-page="moderation">✦ <span>Moderation</span></button>
+      <button class="nav" data-page="security">◈ <span>Security</span></button>
+      <button class="nav" data-page="automod">盾 <span>AutoMod</span></button>
+      <button class="nav" data-page="welcome">♢ <span>Welcome & Farewell</span></button>
+      <button class="nav" data-page="roles">♙ <span>Roles</span></button>
+      <button class="nav" data-page="tickets">▣ <span>Tickets</span></button>
+      <button class="nav" data-page="giveaways">◇ <span>Giveaways</span></button>
+      <button class="nav" data-page="music">♫ <span>Music</span></button>
+      <button class="nav" data-page="community">♧ <span>Community</span></button>
+      <button class="nav" data-page="ai">✧ <span>AI Tools</span></button>
+      <button class="nav" data-page="logging">≡ <span>Logging</span></button>
+      <div class="nav-label">SYSTEM</div>
+      <button class="nav" data-page="audit">◷ <span>Audit Log</span></button>
+    </nav>
+    <div class="side-bottom">
+      <a href="https://discord.gg/bXXFRQ82z" target="_blank">◉ Support Server</a>
+      <button id="logout">↪ Log out</button>
+    </div>
+  </aside>
+
+  <section class="main">
+    <header class="topbar">
+      <div>
+        <div class="crumb">DYNEX / <span id="pageCrumb">Overview</span></div>
+        <h2 id="pageTitle">Server Overview</h2>
+      </div>
+      <div class="top-actions">
+        <div class="bot-pill"><i></i> DYNEX Online</div>
+        <button class="save-btn" id="saveBtn">Save Changes</button>
+        <div class="user" id="userBox">...</div>
+      </div>
+    </header>
+
+    <div id="toast"></div>
+    <div id="content"></div>
+  </section>
+</div>
+
+<div class="modal hidden" id="serverModal">
+  <div class="modal-card">
+    <div class="modal-head"><h3>Select a server</h3><button class="icon-btn" id="closeModal">×</button></div>
+    <input class="search" id="serverSearch" placeholder="Search servers...">
+    <div id="serverList"></div>
+  </div>
+</div>
+<script src="/dashboard.js"></script>
+</body>
+</html>
