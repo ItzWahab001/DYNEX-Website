@@ -1,6 +1,7 @@
 require('dotenv').config({quiet:true});
 const express=require('express');
 const session=require('express-session');
+const pgSession=require('connect-pg-simple')(session);
 const helmet=require('helmet');
 const rateLimit=require('express-rate-limit');
 const path=require('path');
@@ -13,7 +14,7 @@ app.set('trust proxy',1);
 app.use(helmet({contentSecurityPolicy:false}));
 app.use(express.json({limit:'100kb'}));
 app.use(rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false}));
-app.use(session({secret:process.env.SESSION_SECRET||'change-me',resave:false,saveUninitialized:false,cookie:{httpOnly:true,secure:process.env.NODE_ENV==='production',sameSite:'lax',maxAge:7*24*60*60*1000}}));
+app.use(session({store:new pgSession({conString:process.env.DATABASE_URL,tableName:'dynex_dashboard_sessions',createTableIfMissing:true}),secret:process.env.SESSION_SECRET||'change-me',resave:false,saveUninitialized:false,proxy:true,rolling:true,cookie:{httpOnly:true,secure:'auto',sameSite:'lax',maxAge:7*24*60*60*1000}}));
 app.use(express.static(path.join(__dirname,'..','public')));
 
 function auth(req,res,next){ if(!req.session.user) return res.status(401).json({error:'Not authenticated'}); next(); }
@@ -31,7 +32,7 @@ async function managedGuild(req,res,next){
 }
 
 app.get('/auth/discord',(req,res)=>res.redirect(discord.oauthUrl()));
-app.get('/auth/discord/callback',async(req,res)=>{try{if(!req.query.code) return res.redirect('/?error=oauth'); const t=await discord.tokenExchange(req.query.code); const u=await discord.user(t.access_token); req.session.user=u; req.session.accessToken=t.access_token; res.redirect('/dashboard.html');}catch(e){console.error(e.response?.data||e.message);res.redirect('/?error=oauth');}});
+app.get('/auth/discord/callback',async(req,res)=>{try{if(!req.query.code) return res.redirect('/?error=oauth'); const t=await discord.tokenExchange(req.query.code); const u=await discord.user(t.access_token); await new Promise((resolve,reject)=>req.session.regenerate(err=>err?reject(err):resolve())); req.session.user=u; req.session.accessToken=t.access_token; await new Promise((resolve,reject)=>req.session.save(err=>err?reject(err):resolve())); console.log('[DYNEX] Discord OAuth session saved'); res.redirect('/dashboard.html');}catch(e){console.error(e.response?.data||e.message);res.redirect('/?error=oauth');}});
 app.post('/auth/logout',(req,res)=>req.session.destroy(()=>res.json({ok:true})));
 app.get('/api/me',(req,res)=>res.json({authenticated:Boolean(req.session.user),user:req.session.user||null}));
 app.get('/api/guilds',auth,async(req,res)=>{try{const mine=await discord.userGuilds(req.session.accessToken);const bots=await discord.botGuilds();const installed=new Set(bots.map(x=>x.id));res.json({guilds:mine.filter(discord.canManage).map(g=>({...g,botInstalled:installed.has(g.id)}))});}catch(e){res.status(502).json({error:'Discord API request failed'});}});
