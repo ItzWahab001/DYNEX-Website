@@ -14,7 +14,23 @@ app.set('trust proxy',1);
 app.use(helmet({contentSecurityPolicy:false}));
 app.use(express.json({limit:'100kb'}));
 app.use(rateLimit({windowMs:60*1000,max:120,standardHeaders:true,legacyHeaders:false}));
-app.use(session({store:new pgSession({conString:process.env.DATABASE_URL,tableName:'dynex_dashboard_sessions',createTableIfMissing:true}),secret:process.env.SESSION_SECRET||'change-me',resave:false,saveUninitialized:false,proxy:true,rolling:true,cookie:{httpOnly:true,secure:'auto',sameSite:'lax',maxAge:7*24*60*60*1000}}));
+app.use(session({
+  store:new pgSession({
+    pool:db.pool,
+    tableName:'dynex_dashboard_sessions',
+    createTableIfMissing:true
+  }),
+  secret:process.env.SESSION_SECRET||'change-me',
+  resave:false,
+  saveUninitialized:false,
+  proxy:true,
+  cookie:{
+    httpOnly:true,
+    secure:true,
+    sameSite:'lax',
+    maxAge:7*24*60*60*1000
+  }
+}));
 app.use(express.static(path.join(__dirname,'..','public')));
 
 function auth(req,res,next){ if(!req.session.user) return res.status(401).json({error:'Not authenticated'}); next(); }
